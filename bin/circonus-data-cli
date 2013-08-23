@@ -1,0 +1,25 @@
+#!/usr/bin/env ruby
+# CLI for circonus data API
+
+require 'rubygems'
+require 'circonus'
+require 'circonus/values'
+require 'pp'
+require 'ripl'
+
+# You need to have thse in a ~/.circonus.rb file
+#@username="username"
+#@password="password"
+#@account="myaccountname"
+
+require "#{ENV['HOME']}/.circonus.rb"
+
+@d = Circonus::Values.new(@username,@password,@account)
+@d.login()
+
+def help()
+  return methods.select {|s| s.to_s.match('(data|graph|value)') }.sort.join(' ')
+end
+
+Ripl.start :binding => @d.instance_eval{ binding }
+

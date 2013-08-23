@@ -1,0 +1,31 @@
+#!/usr/bin/env ruby
+# CLI for circonus API
+# Most things can be accessed with list_*, get_*, add_*
+
+require 'rubygems'
+require 'circonus'
+require 'pp'
+require 'ripl'
+
+# You need to have thse in a ~/.circonus.rb file
+#@agent="mytestbroker"
+#@apitoken="blahblahblah"
+#@appname="curl"
+
+require "#{ENV['HOME']}/.circonus.rb"
+
+@c = Circonus.new(@apitoken,@appname,@agent)
+
+def help()
+  return methods().select { |m| m.to_s.match('^(list|get|add|delete|update|search)_') }.sort.join(' ')
+end
+
+#def list(arg)
+#  self.send "list_#{arg}".to_sym
+#end
+
+Ripl.start :binding => @c.instance_eval{ binding }
+#Ripl.start
+
+
+
