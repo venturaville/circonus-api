@@ -167,7 +167,7 @@ class Circonus
     params['end'] = Time.now.to_i unless params.has_key? 'end'
     params['period'] = 300 unless params.has_key? 'period'
     params['type'] = 'numeric' unless params.has_key? 'type'
-    url = @url_prefix + 'data' + '/' + cid + '_' + CGI::escape(metric)
+    url = @url_prefix + 'data' + '/' + cid.split('/').last + '_' + CGI::escape(metric)
     #puts "url=#{url}" if @debug
     headers = @headers.merge({:params => params})
     r,err = _rest('get',url, headers)
