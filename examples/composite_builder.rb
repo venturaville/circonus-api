@@ -89,7 +89,7 @@ metrics.each do |metric|
     "period"=>60,
     "status"=>"active",
     "tags"=>options[:tags],
-    "target"=>"ouzo.edge",
+    "target"=>"composite",
     "timeout"=>10,
     "type"=>"composite"
   }
