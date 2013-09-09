@@ -60,11 +60,15 @@ Prerequisites
   # You need to have thse in a ~/.circonus.rb file to use the CLI app
   @agent="mybroker"
   @apitoken="blahblahblah"
-  @appname="curl" # From the applications field 
+  @appname="circonusgem" # From the applications field 
+  @account="api" # may be different? .. 
+
+  # The appname must match what the token key page thinks it is.  The first time you hit the api it will use whatever is set in this field.
+
   # The API requires these settings as well passed to it on init
 
-
   # To use the Circonus::Values to query data, you will also need a read only username/password from the UI
+    -- This is partially obsoleted by get_data in version 2 of the API
 
 API
 -------------
