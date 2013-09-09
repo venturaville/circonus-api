@@ -15,12 +15,13 @@ namespace :gem do
   desc "Push gem upstream"
   task :push do
     version = `awk -F \\\" ' /version/ { print $2 } ' circonus.gemspec`
+    version.chomp!
     puts "Building circonus gem"
     system "gem build circonus.gemspec"
-    puts "Pushing circonus gem version #{version}"
+    puts "Pushing circonus gem version: #{version}"
     system "gem push circonus-#{version}.gem"
-    puts "Cleaning up"
-    system "rm -f circonus-#{version}.gem"
+    puts "Cleaning up circonus-#{version}.gem"
+    File.delete "circonus-#{version}.gem"
     # To yank:
     #gem yank circonus -v ${VERSION}
   end
@@ -30,6 +31,7 @@ namespace :git do
   desc "make a git tag"
   task :tag do
     version = `awk -F \\\" ' /version/ { print $2 } ' circonus.gemspec`
+    version.chomp!
     puts "Tagging git with version=#{version}"
     system "git tag #{version}"
     system "git push --tags"
