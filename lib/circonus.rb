@@ -65,7 +65,7 @@ class Circonus
 
   def get(method,id)
     cid = id.to_s.split('/').last
-    url = @url_prefix + method + '/' + cid
+    url = @url_prefix + method + '/' + CGI.escape(cid)
     #print "url=#{url}\n"
     r,err = _rest('get',url, @headers)
     return nil,err if r.nil?
@@ -74,7 +74,7 @@ class Circonus
 
   def delete(method,id)
     cid = id.to_s.split('/').last
-    url = @url_prefix + method + '/' + cid
+    url = @url_prefix + method + '/' + CGI.escape(cid)
     r,err = _rest('delete',url, @headers)
     return nil,err if r.nil?
     return Yajl::Parser.parse(r)
@@ -88,7 +88,7 @@ class Circonus
 
   def update(method,id,data)
     cid = id.to_s.split('/').last
-    r, err = _rest('put',@url_prefix + method + '/' + cid, @headers, data)
+    r, err = _rest('put',@url_prefix + method + '/' + CGI.escape(cid), @headers, data)
     return nil,err if r.nil?
     return Yajl::Parser.parse(r)
   end
@@ -167,7 +167,7 @@ class Circonus
     params['end'] = Time.now.to_i unless params.has_key? 'end'
     params['period'] = 300 unless params.has_key? 'period'
     params['type'] = 'numeric' unless params.has_key? 'type'
-    url = @url_prefix + 'data' + '/' + cid.split('/').last + '_' + CGI::escape(metric)
+    url = @url_prefix + 'data' + '/' + CGI.escape(cid.split('/').last) + '_' + CGI::escape(metric)
     #puts "url=#{url}" if @debug
     headers = @headers.merge({:params => params})
     r,err = _rest('get',url, headers)
