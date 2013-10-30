@@ -19,8 +19,8 @@ class Circonus
   end
 
   DEFAULT_OPTIONS = {
-    :timeout => 20,
-    :open_timeout => 20
+    :timeout => 300,
+    :open_timeout => 300
   }
   
   def initialize(apitoken,appname,agent, options={})
