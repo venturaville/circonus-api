@@ -17,6 +17,8 @@ def do_update_check_bundle(data)
   existing = false
   if search_check_bundle.any? # already exists...
     existing = true
+    pp search_check_bundle.first['_cid']
+    pp data
     r = @c.update_check_bundle(search_check_bundle.first['_cid'],data)
   else
     r = @c.add_check_bundle(data)
@@ -30,14 +32,31 @@ end
 
 options = {}
 options[:tags] = []
+options[:datatype] = 'counter'
+options[:consolidation] = 'sum'
 OptionParser.new { |opts|
   opts.banner = "Usage: #{File.basename($0)} [-h] [-t tag1,tag2,...]\n"
   opts.on( '-h', '--help', "This usage menu") do
     puts opts
     exit
   end
+  opts.on( '--counter',"Counter" ) do
+    options[:datatype] = 'counter'
+  end
+  opts.on( '--gauge',"Gauge" ) do
+    options[:datatype] = 'gauge'
+  end
+  opts.on( '--average',"Average" ) do
+    options[:consolidation] = 'average'
+  end
+  opts.on( '--sum',"Sum" ) do
+    options[:consolidation] = 'sum'
+  end
   opts.on( '--type TYPE',"Check bundle type" ) do |t|
     options[:type] = t
+  end
+  opts.on( '--metric METRICNAME',"Metric name" ) do |m|
+    options[:metric] = m
   end
   opts.on( '-t','--tags TAGLIST',"Use comma separated list of tags for searching (takes the union)" ) do |t|
     options[:tags] += t.split(/,/).sort.uniq
@@ -47,9 +66,14 @@ OptionParser.new { |opts|
 def usage()
   print <<EOF
   Usage: #{File.basename($0)} -t tag1,tag2,... --type CHECKBUNDLETYPE
-    -h,--help        This usage menu
-    -t,--tags        Comma separated list of tag names to use
-    --type           check bundle type (snmp, nginx, etc.)
+    -h,--help             This usage menu
+    -t,--tags             Comma separated list of tag names to use
+    -m,--metric METRIC    Metric name
+    --counter             Set if the metric is a counter (default)
+    --gauge               Set if the metric is a gauge
+    --sum                 Set if you want a sum (default)
+    --average             Set if you want an average
+    --type                check bundle type (snmp, nginx, etc.)
 EOF
 end
 
@@ -68,13 +92,20 @@ checkbundles = @cached_list_check_bundle.select { |s| ((s['tags'].sort.uniq & op
 
 # unique metric names:
 metrics = checkbundles.map { |m| m['metrics'].map { |mn| mn['name'] } }.flatten.sort.uniq
+if options[:metric]
+  if not metrics.include? options[:metric]
+    raise "No matching metric name (#{options[:metric]}) found in check bundle"
+  else
+    metrics = [options[:metric]]
+  end
+end
 
 # checkids in the group:
 checkids = checkbundles.map { |m| m['_checks'] }.flatten
 
 puts metrics.inspect
 metrics.each do |metric|
-  formula = '(' + checkids.map { |cid| "metric:counter(#{cid.split('/').last}, \"#{metric}\", 60000)" }.join(" + ") + ')'
+  formula = '(' + checkids.map { |cid| "metric:#{options[:datatype]}(#{cid.split('/').last}, \"#{metric}\", 60000)" }.join(" + ") + ')'
   bundle = {
     "brokers"=>[agentid],
     "config"=>{
@@ -94,14 +125,18 @@ metrics.each do |metric|
     "type"=>"composite"
   }
 
-  # Create total of metrics
-  do_update_check_bundle(bundle)
+  if options[:consolidation] == 'sum'
+    # Create total of metrics
+    do_update_check_bundle(bundle)
+  end
 
   # Get average of metrics
   bundle['config']['formula'] = "#{formula} / #{checkids.length}"
   bundle['config']['composite_metric_name'] = "#{metric}_avg"
   bundle['display_name']="Composite Avg: #{options[:tags].join(',')} - #{metric}"
   bundle['metrics'].first['name'] = "#{metric}_avg"
-  do_update_check_bundle(bundle)
+  if options[:consolidation] == 'average'
+    do_update_check_bundle(bundle)
+  end
 end
 
