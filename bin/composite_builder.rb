@@ -54,7 +54,7 @@ OptionParser.new { |opts|
     options[:consolidation] = 'sum'
   end
   opts.on( '--type TYPE',"Check bundle type" ) do |t|
-    options[:type] = t
+    options[:checkbundletype] = t
   end
   opts.on( '--metric METRICNAME',"Metric name" ) do |m|
     options[:metric] = m
@@ -62,11 +62,12 @@ OptionParser.new { |opts|
   opts.on( '-t','--tags TAGLIST',"Use comma separated list of tags for searching (takes the union)" ) do |t|
     options[:tags] += t.split(/,/).sort.uniq
     # these batch of tags provide information for other automation tools to keep the formulas up to date:
-    options[:automation_tags] << "type:#{options[:type]}"
-    options[:automation_tags] << "datatype:#{options[:datatype]}"
-    options[:automation_tags] << "consolidation:#{options[:consolidation]}"
   end
 }.parse!
+
+options[:automation_tags] << "datatype:#{options[:datatype]}"
+options[:automation_tags] << "type:#{options[:checkbundletype]}"
+options[:automation_tags] << "consolidation:#{options[:consolidation]}"
 
 def usage()
   print <<EOF
@@ -83,7 +84,7 @@ EOF
 end
 
 raise "No tags given" unless options[:tags].any?
-raise "No type given" unless options[:type]
+raise "No type given" unless options[:checkbundletype]
 @c = Circonus.new(@apitoken,@appname,@agent)
 
 # the agent that will do composites for us:
@@ -93,7 +94,7 @@ agentid = @c.list_broker({'_name'=>'composite'}).first['_cid']
 @cached_list_check_bundle = @c.list_check_bundle
 
 # checkbundles matching what we want:
-checkbundles = @cached_list_check_bundle.select { |s| ((s['tags'].sort.uniq & options[:tags]) == options[:tags]) and (s['type'] == options[:type]) }
+checkbundles = @cached_list_check_bundle.select { |s| ((s['tags'].sort.uniq & options[:tags]) == options[:tags]) and (s['type'] == options[:checkbundletype]) }
 
 # unique metric names:
 metrics = checkbundles.map { |m| m['metrics'].map { |mn| mn['name'] } }.flatten.sort.uniq
