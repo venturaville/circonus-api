@@ -9,7 +9,7 @@ require 'optparse'
 require "#{ENV['HOME']}/.circonus.rb"
 
 def do_update_check_bundle(data)
-  r = @c.update_check_bundle(search_check_bundle.first['_cid'],data)
+  r = @c.update_check_bundle(data['_cid'],data)
   if not r.nil? then
     pp r
     print "Success updating #{data['display_name']})\n"
