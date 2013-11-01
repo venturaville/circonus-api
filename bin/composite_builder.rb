@@ -32,6 +32,7 @@ end
 
 options = {}
 options[:tags] = []
+options[:automation_tags] = ["source:composite-builder"]
 options[:datatype] = 'counter'
 options[:consolidation] = 'sum'
 OptionParser.new { |opts|
@@ -61,10 +62,9 @@ OptionParser.new { |opts|
   opts.on( '-t','--tags TAGLIST',"Use comma separated list of tags for searching (takes the union)" ) do |t|
     options[:tags] += t.split(/,/).sort.uniq
     # these batch of tags provide information for other automation tools to keep the formulas up to date:
-    options[:tags] << "source:composite-builder"
-    options[:tags] << "type:#{options[:type]}"
-    options[:tags] << "datatype:#{options[:datatype]}"
-    options[:tags] << "consolidation:#{options[:consolidation]}"
+    options[:automation_tags] << "type:#{options[:type]}"
+    options[:automation_tags] << "datatype:#{options[:datatype]}"
+    options[:automation_tags] << "consolidation:#{options[:consolidation]}"
   end
 }.parse!
 
@@ -124,7 +124,7 @@ metrics.each do |metric|
     "notes"=>nil,
     "period"=>60,
     "status"=>"active",
-    "tags"=>(options[:tags] + ["metric:#{metric}"]),
+    "tags"=>(options[:tags] + options[:automation_tags] + ["metric:#{metric}"]),
     "target"=>"composite",
     "timeout"=>10,
     "type"=>"composite"
