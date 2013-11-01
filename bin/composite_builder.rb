@@ -17,8 +17,8 @@ def do_update_check_bundle(data)
   existing = false
   if search_check_bundle.any? # already exists...
     existing = true
-    pp search_check_bundle.first['_cid']
-    pp data
+    #pp search_check_bundle.first['_cid']
+    #pp data
     r = @c.update_check_bundle(search_check_bundle.first['_cid'],data)
   else
     r = @c.add_check_bundle(data)
