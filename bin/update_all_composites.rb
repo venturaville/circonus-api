@@ -51,6 +51,7 @@ def composite_update(composite,tags,select_tags)
   new_formula = generate_formula(checkids,tags['consolidation'],tags['datatype'],tags['metric'])
   if composite['config']['formula'] != new_formula
     composite['config']['formula'] = new_formula
+    composite['config']['composite_metric_name'] = tags['metric']
     do_update_check_bundle(composite)
   end
 end
