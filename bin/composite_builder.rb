@@ -107,7 +107,7 @@ if options[:metric]
 end
 
 # checkids in the group:
-checkids = checkbundles.map { |m| m['_checks'] }.flatten
+checkids = checkbundles.map { |m| m['_checks'] }.flatten.sort
 
 puts metrics.inspect
 metrics.each do |metric|
