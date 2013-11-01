@@ -44,7 +44,7 @@ OptionParser.new { |opts|
     options[:datatype] = 'counter'
   end
   opts.on( '--gauge',"Gauge" ) do
-    options[:datatype] = 'gauge'
+    options[:datatype] = 'average'
   end
   opts.on( '--average',"Average" ) do
     options[:consolidation] = 'average'
