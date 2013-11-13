@@ -23,7 +23,7 @@ class Circonus
     :open_timeout => 300
   }
   
-  def initialize(apitoken,appname,agent, options={})
+  def initialize(apitoken,appname,agent=nil, options={})
     @apitoken = apitoken
     @debug = true
     @raise_errors = false
