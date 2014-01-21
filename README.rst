@@ -12,8 +12,8 @@ Note: For the Data API you should use a readonly username and password
 Docs
 -------------
 
-# API version 1 documentation is here
-  https://circonus.com/resources/api
+# API documentation is here
+  https://login.circonus.com/resources/api
 
 # API Tokens can be created here:
   https://circonus.com/user/tokens
@@ -90,7 +90,8 @@ The list of names (for default v2 API) are:
   - template
   - user
   - worksheet
-
+  - alert (only valid for get and list)
+  - data (only valid for get)
 
 API Examples
 -------------

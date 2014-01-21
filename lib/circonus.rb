@@ -2,7 +2,6 @@
 # Tue Sep 18 20:18:09 EDT 2012
 # -- David Nicklay
 #https://circonus.com/resources/api/templates
-# --TODO caught in between v1 and v2 docs at the moment ... class is a mess because of it
 
 require 'rubygems'
 require 'restclient'
@@ -34,7 +33,6 @@ class Circonus
       "X-Circonus-App-Name" => @appname,
       "Accept" => 'application/json'
     }
-    @url_v1_prefix = "https://circonus.com/api/json/"
     @url_prefix = "https://api.circonus.com/v2/"
     @options = DEFAULT_OPTIONS.merge(options)
   end
@@ -104,41 +102,6 @@ class Circonus
     return Yajl::Parser.parse(r)
   end
 
-  def v1_list(method)
-    url = @url_v1_prefix + 'list_' + method
-    r, err = _rest('get',url,@headers)
-    return nil,err if r.nil?
-    return Yajl::Parser.parse(r)
-  end
-
-  def v1_get(method,id)
-    cid = id.to_s.split('/').last
-    headers = @headers.merge({:params => {"#{method}_id".to_sym => cid}}) # attempt to guess at the id name expected
-    url = @url_v1_prefix + 'get_' + method
-    #print "url=#{url}\n"
-    #pp headers
-    r, err = _rest('get',url, headers)
-    return nil,err if r.nil?
-    return Yajl::Parser.parse(r)
-  end
-
-  def v1_delete(method,id)
-    cid = id.to_s.split('/').last
-    headers = @headers.merge({:params => {"#{method}_id".to_sym => cid}}) # attempt to guess at the id name expected
-    url = @url_v1_prefix + 'delete_' + method
-    r, err = _rest('delete',url, headers)
-    return nil,err if r.nil?
-    return Yajl::Parser.parse(r)
-  end
-
-  def v1_add(method, data, params)
-    headers = @headers.merge({:params => params})
-    r,err = _rest 'get',@url_v1_prefix + 'add_' + method, headers, data
-    return nil,err if r.nil?
-    return Yajl::Parser.parse(r)
-  end
-
-  # Version 2
   # Not all these are available:
   %w{ account annotation broker check_bundle contact_group graph rule_set template user worksheet check }.each do |m|
     define_method("list_#{m}".to_sym) do |*filter|
@@ -161,6 +124,15 @@ class Circonus
     end
   end
 
+  %w{ alert }.each do |m|
+    define_method("list_#{m}".to_sym) do |*filter|
+      return list(m,filter.first)
+    end
+    define_method("get_#{m}".to_sym) do |id|
+      return get(m,id)
+    end
+  end
+
   # extraction of time ranged data (this one is a bit different from the other v2 ones)
   def get_data(cid,metric,params = {})
     params['start'] = (Time.now - 3600).to_i unless params.has_key? 'start'
@@ -174,23 +146,5 @@ class Circonus
     return nil,err if r.nil?
     return Yajl::Parser.parse(r)
   end
-
-  # Version 1 (Deprecated)
-  %w{ metric check template annotation graph worksheet rule account user agent }.each do |m|
-    define_method("v1_list_#{m}s".to_sym) do
-      return v1_list(m + 's')
-    end
-    define_method("v1_get_#{m}".to_sym) do |id|
-      return v1_get(m,id)
-    end
-    define_method("v1_delete_#{m}".to_sym) do |id|
-      return v1_delete(m,id)
-    end
-    define_method("v1_add_#{m}".to_sym) do |data,params|
-      return v1_add(m,data,params)
-    end
-    define_method ("v1_search_#{m}".to_sym) do |match,field|
-      return v1_list(m + 's').select { |t| t[field].match(match) }
-    end
-  end
 end
+

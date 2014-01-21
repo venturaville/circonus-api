@@ -37,7 +37,6 @@ class Circonus
         "X-Circonus-App-Name" => @appname,
         "Accept" => 'application/json'
       }
-      @url_v1_prefix = "https://circonus.com/api/json/"
       @url_prefix = "https://api.circonus.com/v2/"
     end
 
