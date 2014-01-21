@@ -69,30 +69,29 @@ Prerequisites
 API
 -------------
 
-  Most functions are available using any of:
+Most functions are available using any of:
 
-    - list_(name)({OPTIONAL_HASH_OF_MATCHING_KEY_AND_VALUES}) # hash is used for filtering
-    - get_(name)(id)
-    - add_(name)(data)
-    - update_(name)(id,data)
-    - delete_(name)(id)
-    - search_(name)(regex_string,field_name) # this is done using list for now (avoid if possible)... 
+  - list_(name)({OPTIONAL_HASH_OF_MATCHING_KEY_AND_VALUES}) # hash is used for filtering
+  - get_(name)(id)
+  - add_(name)(data)
+  - update_(name)(id,data)
+  - delete_(name)(id)
+  - search_(name)(regex_string,field_name) # this is done using list for now (avoid if possible)... 
 
-  The list of names (for default v2 API) are:
+The list of names (for default v2 API) are:
 
-    - account
-    - annotation
-    - broker
-    - check_bundle
-    - contact_group
-    - graph
-    - rule_set
-    - template
-    - user
-    - worksheet
-    - alert (only valid for get and list)
-    - data (only valid for get)
-    
+  - account
+  - annotation
+  - broker
+  - check_bundle
+  - contact_group
+  - graph
+  - rule_set
+  - template
+  - user
+  - worksheet
+  - alert (only valid for get and list)
+  - data (only valid for get)
 
 API Examples
 -------------
@@ -114,14 +113,13 @@ API Examples
 
 
 ::
+
     graphs = list_graph()
 
 ::
+
     # Use the graph id from a specific graph to get info on it
     get_graph('/graph/aeda0a3a-aaea-e7a4-b5ad-9a7ab11bc44b')
-
-::
-
 
 CLI Examples
 -------------
@@ -153,6 +151,7 @@ Everything in the API should be available in the CLI directly
 
 
 ::
+
     # Get data from a time range
     # - check bundle ID
     # - metric name
