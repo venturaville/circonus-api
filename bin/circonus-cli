@@ -5,27 +5,66 @@
 require 'rubygems'
 require 'circonus'
 require 'pp'
+require 'optparse'
 require 'ripl'
 
-# You need to have thse in a ~/.circonus.rb file
+# You can optionally define these in a ~/.circonus.rb file as a shortcut
+# Any arguments passed will override them...
 #@agent="mytestbroker"
 #@apitoken="blahblahblah"
 #@appname="curl"
+#@apiserver="api.circonus.com"
 
-require "#{ENV['HOME']}/.circonus.rb"
+rbfile = "#{ENV['HOME']}/.circonus.rb"
+require rbfile if File.exist? rbfile
 
-@c = Circonus.new(@apitoken,@appname,@agent)
+options = {}
+options[:apiserver] = "api.circonus.com" # can be something else for Circonus inside product...
+options[:appname] = @appname || "curl"
+options[:apitoken] = @apitoken
+options[:agent] = @agent || 'Ashburn, VA, US'
+OptionParser.new { |opts|
+  opts.banner = "Usage: #{File.basename($0)} [-h] hostname [-t tag1,tag2,...]\n"
+  opts.on( '-h', '--help', "This usage menu") do
+    puts opts
+    exit
+  end
+  opts.on( '-a','--appname APPNAME',"Name of application to report to Circonus (default: curl)" ) do |t|
+    options[:appname] = t
+  end
+  opts.on( '-g','--agent APPNAME',"Name of agent to use" ) do |t|
+    options[:agent] = t
+  end
+  opts.on( '-s','--server APISERVER',"API server to use (default: api.circonus.com)" ) do |t|
+    options[:apiserver] = t
+  end
+  opts.on( '-t','--token APITOKEN',"API token to use (required in either .circonus.rb or in args" ) do |t|
+    options[:apitoken] = t
+  end
+}.parse!
+
+def usage()
+  print <<EOF
+  Usage: #{File.basename($0)} hostname [-t APITOKEN] [-a APPNAME ] [-s APISERVER] [-g AGENT]
+    -h,--help                    This usage menu
+    -g,--agent AGENTNAME         Name of agent to use (default: 'Ashburn, VA, US')
+    -a,--appname APPNAME         The name of the application as reported to Circonus (default: curl)
+    -s,--server APISERVER        The hostname of the API server to use (default: api.circonus.com)
+    -t,--token APITOKEN          The API token to use (required in either .circonus.rb or in args)
+EOF
+end
+
+if options[:apitoken].to_s.empty?
+  usage()
+  exit -1
+end
+
+@c = Circonus.new(options[:apitoken],options[:appname],options[:agent])
+@c.set_server(options[:apiserver])
 
 def help()
   return methods().select { |m| m.to_s.match('^(list|get|add|delete|update|search)_') }.sort.join(' ')
 end
 
-#def list(arg)
-#  self.send "list_#{arg}".to_sym
-#end
-
 Ripl.start :binding => @c.instance_eval{ binding }
-#Ripl.start
-
-
 
