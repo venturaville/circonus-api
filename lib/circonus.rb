@@ -21,6 +21,18 @@ class Circonus
     :timeout => 300,
     :open_timeout => 300
   }
+
+  def set_apitoken(apitoken)
+    @apitoken = apitoken
+  end
+
+  def set_appname(appname)
+    @appname = appname
+  end
+
+  def set_server(server)
+    @url_prefix = "https://#{server}/v2/"
+  end
   
   def initialize(apitoken,appname,agent=nil, options={})
     @apitoken = apitoken
