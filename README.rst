@@ -160,6 +160,11 @@ Everything in the API should be available in the CLI directly
     url=https://api.circonus.com/v2/data/53061_tt_firstbyte
     => {"_cid"=>"/data/59030_tt_firstbyte", "data"=>[[1376055900, {"count"=>5, "counter"=>0.911668002605438, "counter_stddev"=>1.54755294322968, "derivative"=>0.726139008998871, "derivative_stddev"=>1.4332150220871, "stddev"=>86.7077865600586, "value"=>208.4}]]}
 
+::
+
+    # Get graph, fetch data, and evaluate all datapoint and composite formulas 
+    >> gd = get_graph_data('aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa',(Time.new - 86400).to_i)
+
 
 Web based Data API
 --------------------
