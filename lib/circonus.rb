@@ -5,7 +5,7 @@
 
 require 'rubygems'
 require 'restclient'
-require 'cgi'
+require 'uri'
 require 'pp'
 require 'yajl'
 
@@ -50,6 +50,7 @@ class Circonus
   end
 
   def _rest(type,url,headers,data=nil)
+    #STDERR.puts "_rest: type=#{type} url=#{url} headers=#{headers.inspect} data=#{data.inspect}"
     begin
       resource = RestClient::Resource.new url, :timeout => @options[:timeout], :open_timeout => @options[:open_timeout]
       case type
@@ -75,7 +76,7 @@ class Circonus
 
   def get(method,id)
     cid = id.to_s.split('/').last
-    url = @url_prefix + method + '/' + CGI.escape(cid)
+    url = @url_prefix + method + '/' + URI.escape(cid)
     #print "url=#{url}\n"
     r,err = _rest('get',url, @headers)
     return nil,err if r.nil?
@@ -84,7 +85,7 @@ class Circonus
 
   def delete(method,id)
     cid = id.to_s.split('/').last
-    url = @url_prefix + method + '/' + CGI.escape(cid)
+    url = @url_prefix + method + '/' + URI.escape(cid)
     r,err = _rest('delete',url, @headers)
     return nil,err if r.nil?
     return Yajl::Parser.parse(r)
@@ -98,7 +99,7 @@ class Circonus
 
   def update(method,id,data)
     cid = id.to_s.split('/').last
-    r, err = _rest('put',@url_prefix + method + '/' + CGI.escape(cid), @headers, data)
+    r, err = _rest('put',@url_prefix + method + '/' + URI.escape(cid), @headers, data)
     return nil,err if r.nil?
     return Yajl::Parser.parse(r)
   end
@@ -106,7 +107,7 @@ class Circonus
   def list(method,filter=nil)
     url = @url_prefix + method
     if (not filter.nil?) and filter.any?
-      query_string = filter.map { |k,v| "f_#{CGI::escape(k)}=#{CGI::escape(v)}" }.join('&')
+      query_string = filter.map { |k,v| "f_#{URI::escape(k)}=#{URI::escape(v)}" }.join('&')
       url += '?' + query_string
     end
     r, err = _rest('get',url,@headers)
@@ -151,7 +152,7 @@ class Circonus
     params['end'] = Time.now.to_i unless params.has_key? 'end'
     params['period'] = 300 unless params.has_key? 'period'
     params['type'] = 'numeric' unless params.has_key? 'type'
-    url = @url_prefix + 'data' + '/' + CGI.escape(cid.to_s.split('/').last) + '_' + CGI::escape(metric)
+    url = @url_prefix + 'data' + '/' + URI.escape(cid.to_s.split('/').last) + '_' + URI::escape(metric)
     headers = @headers.merge({:params => params})
     r,err = _rest('get',url, headers)
     return nil,err if r.nil?
