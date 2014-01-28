@@ -152,11 +152,71 @@ class Circonus
     params['period'] = 300 unless params.has_key? 'period'
     params['type'] = 'numeric' unless params.has_key? 'type'
     url = @url_prefix + 'data' + '/' + CGI.escape(cid.to_s.split('/').last) + '_' + CGI::escape(metric)
-    #puts "url=#{url}" if @debug
     headers = @headers.merge({:params => params})
     r,err = _rest('get',url, headers)
     return nil,err if r.nil?
     return Yajl::Parser.parse(r)
+  end
+
+  def _data_formula(formula,data)
+    vals = []
+    formula = formula.clone
+    formula.tr!('^A-Za-z0-9/+.*_)(-','' ) # prevent injection
+    formula.tr!('A-Z','a-z')
+    formula.gsub!(/[a-z]+/) { |n| "var_#{n}" } # prevent clobbering of ruby keywords
+    data.each_with_index do |v,i|
+      res = eval "var_val=#{v[1]}\n#{formula}\n"
+      vals[i] = [v[0],res]
+    end
+    return vals
+  end
+
+  def _data_derive(data,datapoint)
+    derive = datapoint['derive']
+    derive = 'value' if derive == 'gauge'
+    data = data.map { |m| [m[0],(m[1] ? m[1][derive] : nil)] }
+    data = _data_formula(datapoint['data_formula'],data) if datapoint['data_formula']
+    return data
+  end
+
+  def _composite_formula(formula,graph)
+    formula = formula.clone
+    formula.tr!('^A-Za-z0-9/+.*_)(-','' ) # prevent injection
+    formula.tr!('A-Z','a-z')
+    formula.gsub!(/[a-z]+/) { |n| "var_#{n}" } # prevent clobbering of ruby keywords
+    dps = graph['datapoints']
+    ndps = dps.length
+    nvals = dps.first['data'].length
+    data = []
+    (0...nvals).each do |n|
+      evalstr = ""
+      ('a'..'zzzz').each_with_index do |x,i|
+        break if i == ndps
+        evalstr += "var_#{x}=#{dps[i]['data'][n].last.to_f.to_s}\n" # force an s->i->s conversion to prevent injection in the values
+      end
+      res = eval "#{evalstr}\n#{formula}\n"
+      data[n] = [dps.first['data'][n].first,res]
+    end
+    return data
+  end
+
+  # Get the range of data values from start to end time
+  # This calculates out the datapoints and composites using the formulas in each graph
+  # --TODO This is very slow at the moment.......
+  def get_graph_data(gid,t_start=nil,t_end=nil)
+    t_end ||= Time.new.to_i
+    t_start ||= (t_end - 600)
+    g = get_graph(gid)
+    params = {'end'=>t_end.to_i,'start'=>t_start.to_i}
+    g['datapoints'].each do |dp|
+      res = get_data(dp['check_id'],dp['metric_name'],params)
+      data = res['data']
+      dp['data'] = _data_derive(data,dp)
+    end
+    g['composites'].each do |cmp|
+      cmp['data'] = _composite_formula(cmp['data_formula'],g)
+    end
+    return g
   end
 end
 
