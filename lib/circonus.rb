@@ -107,7 +107,7 @@ class Circonus
   def list(method,filter=nil)
     url = @url_prefix + method
     if (not filter.nil?) and filter.any?
-      query_string = filter.map { |k,v| "f_#{URI::escape(k)}=#{URI::escape(v)}" }.join('&')
+      query_string = filter.map { |k,v| [v].flatten.map { |val|"f_#{URI::escape(k)}=#{URI::escape(val)}" } }.flatten.join('&')
       url += '?' + query_string
     end
     r, err = _rest('get',url,@headers)
