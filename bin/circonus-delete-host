@@ -31,23 +31,23 @@ end
 
 @c = Circonus.new(@apitoken,@appname,@agent)
 
-print "Deleting check bundles for host #{host}\n"
+print "Deleting monitoring for host #{host}\n"
 cbs = @c.list_check_bundle({'tags_has'=>"fqdn:#{host.downcase}"})
 checks = cbs.map { |m| m['_checks'] }.flatten
 graphs = @c.list_graph({'tags_has'=>"fqdn:#{host.downcase}"})
 checks.each do |check|
   rule_sets =  @c.list_rule_set({'check'=>check})
   rule_sets.each do |rs|
-    delete_rule_set(rs['_cid'])
+    @c.delete_rule_set(rs['_cid'])
     puts "Deleting rule set id: #{rs['_cid']}"
   end
 end
 graphs.each do |graph|
-  delete_graph(graph['_cid'])
+  @c.delete_graph(graph['_cid'])
   puts "Deleting graph id: #{graph['_cid']}"
 end
 cbs.each do |cb|
-  delete_check_bundle(cb['_cid'])
+  @c.delete_check_bundle(cb['_cid'])
   puts "Deleting check bundle id: #{cb['_cid']}"
 end
 
