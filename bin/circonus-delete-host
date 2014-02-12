@@ -1,0 +1,53 @@
+#!/usr/bin/env ruby
+# Delete a single host (and all associated check bundles, graphs, and rule sets)
+# Use FQDN tag to identify it.
+
+require 'rubygems'
+require 'circonus'
+require 'optparse'
+require "#{ENV['HOME']}/.circonus.rb"
+
+options = {}
+OptionParser.new { |opts|
+  opts.banner = "Usage: #{File.basename($0)} [-h] hostname\n"
+  opts.on( '-h', '--help', "This usage menu") do
+    puts opts
+    exit
+  end
+}.parse!
+
+def usage()
+  print <<EOF
+  Usage: #{File.basename($0)} hostname
+    -h,--help        This usage menu
+EOF
+end
+
+host = ARGV[0]
+if host.nil? or host.empty? then
+  usage()
+  exit -1
+end
+
+@c = Circonus.new(@apitoken,@appname,@agent)
+
+print "Deleting check bundles for host #{host}\n"
+cbs = @c.list_check_bundle({'tags_has'=>"fqdn:#{host.downcase}"})
+checks = cbs.map { |m| m['_checks'] }.flatten
+graphs = @c.list_graph({'tags_has'=>"fqdn:#{host.downcase}"})
+checks.each do |check|
+  rule_sets =  @c.list_rule_set({'check'=>check})
+  rule_sets.each do |rs|
+    delete_rule_set(rs['_cid'])
+    puts "Deleting rule set id: #{rs['_cid']}"
+  end
+end
+graphs.each do |graph|
+  delete_graph(graph['_cid'])
+  puts "Deleting graph id: #{graph['_cid']}"
+end
+cbs.each do |cb|
+  delete_check_bundle(cb['_cid'])
+  puts "Deleting check bundle id: #{cb['_cid']}"
+end
+
