@@ -19,7 +19,7 @@ rbfile = "#{ENV['HOME']}/.circonus.rb"
 require rbfile if File.exist? rbfile
 
 options = {}
-options[:apiserver] = "api.circonus.com" # can be something else for Circonus inside product...
+options[:apiserver] = @apiserver || "api.circonus.com" # can be something else for Circonus inside product...
 options[:appname] = @appname || "curl"
 options[:apitoken] = @apitoken
 options[:agent] = @agent || 'Ashburn, VA, US'
