@@ -116,7 +116,7 @@ class Circonus
   end
 
   # Not all these are available:
-  %w{ account annotation broker check_bundle contact_group graph rule_set template user worksheet check }.each do |m|
+  %w{ account annotation broker check_bundle contact_group graph metric_cluster rule_set template user worksheet check }.each do |m|
     define_method("list_#{m}".to_sym) do |*filter|
       return list(m,filter.first)
     end
