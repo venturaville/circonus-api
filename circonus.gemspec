@@ -1,6 +1,6 @@
 Gem::Specification.new do |s|
   s.name = "circonus"
-  s.version = "3.2.0"
+  s.version = "3.3.0"
   s.license = 'MIT'
   s.email = "david-vv@nicklay.com"
   s.homepage = "https://github.com/venturaville/circonus-api"
@@ -9,7 +9,7 @@ Gem::Specification.new do |s|
   s.files = Dir['lib/**/*.rb'] + Dir['bin/*'] + Dir['examples/*.rb']
   s.description = "Wrapper and CLI for Circonus API"
   s.bindir = "bin"
-  s.executables = %w{ circonus-cli circonus-data-cli circonus-delete-host }
+  s.executables = %w{ circonus-add-composite circonus-cli circonus-data-cli circonus-delete-host }
   %w{ rest-client ripl yajl-ruby }.each do |d|
     s.add_dependency d
   end

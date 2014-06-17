@@ -1,0 +1,58 @@
+#!/usr/bin/env ruby
+# Add a composite metric given a set of tags to filter on
+
+require 'circonusutil'
+cu = CirconusUtil.new() { |opts,options|
+  options[:tags] = ['application:composite']
+  options[:filter] = []
+  options[:stats] = 'mean'
+  options[:metric] = 'average'
+  options[:name] = nil
+  opts.on( '--tags TAGLIST',"Apply comma separated list of tags (default: empty list)" ) { |t| options[:tags] += t.split(/,/) }
+  opts.on( '--filter TAGLIST',"Apply comma separated list of tags to filter on" ) { |t| options[:filter] += t.split(/,/) }
+  opts.on( '--stats TYPE',"Take the sum/mean/min/etc.. of the group of stats (default: mean)" ) { |t| options[:stats] = t }
+  opts.on( '--metric TYPE',"The type (counter/average/etc..) of the datapoint (default: average)" ) { |t| options[:metric] = t }
+  opts.on( '--name NAME',"The name of the metric to use." ) { |t| options[:name] = t }
+}
+if cu.options[:filter].empty?
+  puts "Missing filter"
+  exit -1
+end
+if cu.options[:metric].to_s.empty?
+  puts "Missing metric"
+  exit -1
+end
+
+brokers = cu.circonus.list_broker({'_name'=>'composite'})
+bid = brokers.first['_cid']
+
+formula = "stats:#{cu.options[:stats]}(metric:#{cu.options[:metric]}(#{cu.options[:filter].sort.map {|m|'tag:'+m}.join(' and ')}, \"#{cu.options[:name]}\", 60000))"
+display_name = cu.options[:filter].sort.join(' ') + ' ' + cu.options[:name] + ' composite'
+bundle = {
+  "target"=>"composite",
+  "timeout"=>10,
+  "metrics"=> [ {"status"=>"active", "name"=>cu.options[:name], "type"=>"numeric"} ],
+  "brokers"=>[bid],
+  "period"=>60,
+  "display_name"=>display_name,
+  "tags"=> cu.options[:tags],
+  "notes"=>nil,
+  "config"=> {
+    "formula" => formula,
+    "composite_metric_name" => cu.options[:name]
+  },
+  "type"=>"composite"
+}
+puts "Bundle=#{bundle.inspect}"
+bundles = cu.circonus.list_check_bundle({'type'=>'composite','display_name'=>display_name})
+r = nil
+if bundles.any?
+  print "Updating cid=#{bundles.first['_cid']}\n"
+  r = cu.circonus.update_check_bundle(bundles.first['_cid'],bundle)
+else
+  print "Adding bundle\n"
+  r = cu.circonus.add_check_bundle(bundle)
+end
+if not r.nil? then
+  print "Success\n"
+end
