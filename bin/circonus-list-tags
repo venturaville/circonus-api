@@ -1,0 +1,4 @@
+#!/usr/bin/env ruby
+require 'circonusutil'
+cu = CirconusUtil.new
+puts cu.circonus.list_check_bundle.map { |m| m['tags'] }.flatten.sort.uniq.join("\n")

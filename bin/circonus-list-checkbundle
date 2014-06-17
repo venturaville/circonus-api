@@ -1,0 +1,33 @@
+#!/usr/bin/env ruby
+
+require 'circonusutil'
+cu = CirconusUtil.new() { |opts,options|
+  options[:filter] = []
+  options[:target] = nil
+  opts.banner = "Usage: #{File.basename($0)} [-h] [--filter tag1,tag2,...] [--type type] [--target target]\n"
+  opts.on( '--attribute ATTRIBUTE',"attribute to print" ) do |a|
+    options[:attribute] = a
+  end
+  opts.on( '--type TYPE',"check bundle type" ) do |t|
+    options[:type] = t
+  end
+  opts.on( '--target TARGET',"Filter by a given target name" ) do |t|
+    options[:target] = t
+  end
+  opts.on( '--filter TAGLIST',"Use comma separated list of tags for searching (takes the intersection)" ) do |t|
+    options[:filter] += t.split(/,/).sort.uniq
+  end
+}
+
+filter = {}
+filter['tags_has']=cu.options[:filter] unless cu.options[:filter].empty?
+filter['target']=cu.options[:target] unless cu.options[:target].nil?
+filter['type']=cu.options[:type] unless cu.options[:type].nil?
+checkbundles = cu.circonus.list_check_bundle(filter)
+
+if cu.options[:attribute]
+  puts checkbundles.map { |m| m[cu.options[:attribute]] }.join("\n")
+else
+  pp checkbundles
+end
+

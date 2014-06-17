@@ -50,21 +50,18 @@ The data is returned JSON encoded.  Composites are not totaled, but are represen
 Prerequisites
 ---------------
 
+You will minimally need a working circonus API authentication token, in order to use this gem.
+
 ::
 
-  # Install dependencies
-  sudo gem install ripl rest-client
+  # Set API token (required or it needs to be passed on command line)
+  export CIRCONUS_APITOKEN="9999999-9999-9999-99999999"
 
-  # Need to generate a token here:
-  #    https://circonus.com/user/tokens 
-  # You need to have thse in a ~/.circonus.rb file to use the CLI app
-  @agent="mybroker"
-  @apitoken="blahblahblah"
-  @appname="curl" # From the applications field 
-  # The API requires these settings as well passed to it on init
+  # Set app name (optional, default: curl)
+  export CIRCONUS_APPNAME="curl"
 
-
-  # To use the Circonus::Values to query data, you will also need a read only username/password from the UI
+  # If you are using Circonus inside, or have a different API endpoint:
+  export CIRCONUS_APISERVER="circonusinsidehostname"
 
 API
 -------------
@@ -100,13 +97,12 @@ API Examples
 
     require 'circonus'
 
-    @agent="myinternalbroker"
     @apitoken="blahblahblah"
     @appname="curl"
 
     hosts = ARGV
 
-    c = Circonus.new(@apitoken,@appname,@agent)
+    c = Circonus.new(@apitoken,@appname)
 
     agents = c.list_broker
     #pp agents
@@ -166,43 +162,13 @@ Everything in the API should be available in the CLI directly
     >> gd = get_graph_data('aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa',(Time.new - 86400).to_i)
 
 
-Web based Data API
---------------------
-
-NOTE: DO NOT use this if you need the raw data.  This is for getting to what the UI sees, not the raw data
-
-Graph IDs and check IDs match up with what comes out of the Circonus API
-
-::
-
-    # Initialize our class instance and session id
-    require 'rubygems'
-    require 'circonus/values'
-    user = 'username' # This should be a readonly user.....
-    pass = 'password'
-    acct = 'tbs' # This is the lowercased account name as seen when you login
-    @d = Circonus::Values.new(user,pass,acct)
-    @d.login()
-
-::
-
-    # You can query the data and some of the graph metadata from the Data API using the graph ID
-    >> @d.graph_data('a04ed4da-8888-6ac3-d39b-dddf2eb54c91')['title']
-    => "My Test Graph"
-
-::
-
-    # Get the sum of all numeric datapoints in this graph:
-    >> @d.total_last_graph_data('aaaaaaaa-aaaaa-aaaaaa')
-    => 5356
-
-
 Utilities
 ----------------
+
 
 ::
 
     # Add a simple composite check using tags
-    $ MYAPITOKEN=99999999-9999-9999-9999-999999999999
-    $ circonus-add-composite -t $MYAPITOKEN --name 'aggregation`cpu-average`cpu`idle'  --metric counter --stats mean --filter mytagname:mytagvalue,scope:prod --tags mytagname:mytagvalue,scope:prod
+    $ CIRCONUS_APITOKEN=99999999-9999-9999-9999-999999999999
+    $ circonus-add-composite --name 'aggregation`cpu-average`cpu`idle'  --metric counter --stats mean --filter mytagname:mytagvalue,scope:prod --tags mytagname:mytagvalue,scope:prod
 

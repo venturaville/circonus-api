@@ -2,34 +2,17 @@
 # Delete a single host (and all associated check bundles, graphs, and rule sets)
 # Use FQDN tag to identify it.
 
-require 'rubygems'
-require 'circonus'
-require 'optparse'
-require "#{ENV['HOME']}/.circonus.rb"
+require 'circonusutil'
 
-options = {}
-OptionParser.new { |opts|
-  opts.banner = "Usage: #{File.basename($0)} [-h] hostname\n"
-  opts.on( '-h', '--help', "This usage menu") do
+cu = CirconusUtil.new() { |opts,options|
+  opts.banner = "Usage: #{File.basename($0)} hostname\n"
+  host = ARGV[0]
+  if host.nil? or host.empty? then
+    puts "Missing hostname!"
     puts opts
-    exit
+    exit -1
   end
-}.parse!
-
-def usage()
-  print <<EOF
-  Usage: #{File.basename($0)} hostname
-    -h,--help        This usage menu
-EOF
-end
-
-host = ARGV[0]
-if host.nil? or host.empty? then
-  usage()
-  exit -1
-end
-
-@c = Circonus.new(@apitoken,@appname,@agent)
+}
 
 print "Deleting monitoring for host #{host}\n"
 cbs = @c.list_check_bundle({'tags_has'=>"fqdn:#{host.downcase}"})

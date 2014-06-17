@@ -17,7 +17,7 @@ class CirconusUtil
       opts.on( '-s','--server APISERVER',"API server to use (default: api.circonus.com)" ) do |t|
         @options[:apiserver] = t
       end
-      opts.on( '-t','--token APITOKEN',"API token to use (required in either .circonus.rb or in args" ) do |t|
+      opts.on( '-t','--token APITOKEN',"API token to use (required)" ) do |t|
         @options[:apitoken] = t
       end
       unless @additional_opts.nil?
@@ -34,12 +34,10 @@ class CirconusUtil
     @circonus.set_server(@options[:apiserver])
   end
   def initialize(&addl_opts)
-    rbfile = "#{ENV['HOME']}/.circonus.rb"
-    require rbfile if File.exist? rbfile
     @options = {}
-    @options[:apiserver] = @apiserver || "api.circonus.com" # can be something else for Circonus inside product...
-    @options[:appname] = @appname || "curl"
-    @options[:apitoken] = @apitoken
+    @options[:apiserver] = ENV['CIRCONUS_APISERVER'] || "api.circonus.com" # can be something else for Circonus inside product...
+    @options[:appname] = ENV['CIRCONUS_APPNAME'] || "curl"
+    @options[:apitoken] = ENV['CIRCONUS_APITOKEN']
     @additional_opts = addl_opts
     self.parse_opts
     self.connect
