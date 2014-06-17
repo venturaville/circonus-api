@@ -4,9 +4,6 @@ require 'optparse'
 class CirconusUtil
   attr_accessor :options
   attr_accessor :circonus
-  def add_opts(&optblock)
-    @addl_opts = optblock
-  end
   def parse_opts()
     OptionParser.new { |opts|
       opts.banner = "Usage: #{File.basename($0)}\n"
