@@ -196,3 +196,13 @@ Graph IDs and check IDs match up with what comes out of the Circonus API
     >> @d.total_last_graph_data('aaaaaaaa-aaaaa-aaaaaa')
     => 5356
 
+
+Utilities
+----------------
+
+::
+
+    # Add a simple composite check using tags
+    $ MYAPITOKEN=99999999-9999-9999-9999-999999999999
+    $ circonus-add-composite -t $MYAPITOKEN --name 'aggregation`cpu-average`cpu`idle'  --metric counter --stats mean --filter mytagname:mytagvalue,scope:prod --tags mytagname:mytagvalue,scope:prod
+
