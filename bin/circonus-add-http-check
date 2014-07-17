@@ -45,17 +45,10 @@ def do_update_check_bundle(cu,data)
   end
 end
 
-agents = cu.circonus.list_broker({'_name'=>cu.options[:broker]})
-agentid = agents.select { |a| a['_name'] == cu.options[:broker] }.first['_cid']
-if agentid.nil?
-  puts "Missing agent id!"
-  exit -1
-end
-
 brokerids = []
 cu.options[:brokers].each do |broker|
-  circonus_brokers = cu.list_broker({'_name'=>broker})
-  id = circonus_brokers.map { |m| m['_cid'] }
+  circonus_brokers = cu.circonus.list_broker({'_name'=>broker})
+  id = circonus_brokers.map { |m| m['_cid'] }.first
   brokerids << id
 end
 
