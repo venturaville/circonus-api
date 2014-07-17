@@ -4,15 +4,15 @@
 
 require 'circonusutil'
 
+host = nil
 cu = CirconusUtil.new() { |opts,options|
   opts.banner = "Usage: #{File.basename($0)} hostname\n"
-  host = ARGV[0]
-  if host.nil? or host.empty? then
-    puts "Missing hostname!"
-    puts opts
-    exit -1
-  end
 }
+if ARGV.empty? then
+  puts "Missing hostname!"
+  exit -1
+end
+host = ARGV.pop
 
 print "Deleting monitoring for host #{host}\n"
 cbs = cu.circonus.list_check_bundle({'tags_has'=>"fqdn:#{host.downcase}"})
