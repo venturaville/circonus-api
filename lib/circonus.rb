@@ -19,7 +19,8 @@ class Circonus
 
   DEFAULT_OPTIONS = {
     :timeout => 300,
-    :open_timeout => 300
+    :open_timeout => 300,
+    :verify_ssl => false
   }
 
   def set_apitoken(apitoken)
@@ -52,7 +53,7 @@ class Circonus
   def _rest(type,url,headers,data=nil)
     #STDERR.puts "_rest: type=#{type} url=#{url} headers=#{headers.inspect} data=#{data.inspect}"
     begin
-      resource = RestClient::Resource.new url, :timeout => @options[:timeout], :open_timeout => @options[:open_timeout]
+      resource = RestClient::Resource.new url, :timeout => @options[:timeout], :open_timeout => @options[:open_timeout], :verify_ssl => @options[:verify_ssl]
       case type
       when 'delete'
         r = resource.delete headers
