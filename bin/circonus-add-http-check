@@ -10,11 +10,15 @@ host = nil
   options[:brokers] = []
   options[:hostname] = nil
   options[:url] = nil
+  options[:timeout] = 10 # seconds
+  options[:texttomatch] = nil
   options[:tags] = ['application:http','source:manual']
   opts.banner = "Usage: #{File.basename($0)}\n"
   opts.on( '--tags TAGLIST',"Apply comma separated list of tags (default: empty list)" ) { |t| options[:tags] += t.split(/,/) }
   opts.on( '--brokers BROKER',"Comma separated list of broker names to use" ) { |t| options[:brokers] = t.split(',') }
   opts.on( '--hostname HOSTNAME',"Hostname to add" ) { |t| options[:hostname] = t }
+  opts.on( '--timeout TIMEOUT',"Host timeout" ) { |t| options[:timeout] = t.to_i }
+  opts.on( '--match TEXTTOMATCH',"String to match against in the response" ) { |t| options[:texttomatch] = t }
   opts.on( '--contactgroups CONTACTGROUPS',"Comma separated list of contact groups to send alerts to" ) { |t| options[:contactgroups] = t }
   opts.on( '--url URL',"URL to test" ) { |t| options[:url] = t }
 }
@@ -93,6 +97,7 @@ bundle['target'] = @cu.options[:hostname]
 bundle['tags'] = @cu.options[:tags]
 bundle['display_name'] = "#{@cu.options[:hostname]} http"
 bundle['config']['url'] = @cu.options[:url]
+bundle['config']['body'] = @cu.options[:texttomatch] unless @cu.options[:texttomatch].nil?
 bundle['config']['header_Host'] = @cu.options[:hostname]
 search_bundles = @cu.circonus.search_check_bundle(bundle['display_name'],'display_name')
 if search_bundles.any? # already exists...
@@ -141,7 +146,7 @@ graph = mib_add_graph!("#{@cu.options[:hostname]} http latency",{'style'=>'line'
 checkids.each do |cid|
   dpcid = cid.split('/').last.to_i
   %w{ tt_connect tt_firstbyte duration }.each do |metric|
-    mib_add_datapoint!(graph,metric,{'name'=>"metric cid:#{dpcid}",'legend_formula'=>'=round(VAL,3)','data_formula'=>'=VAL/1000.0','check_id'=>dpcid})
+    mib_add_datapoint!(graph,metric,{'name'=>"#{metric} cid:#{dpcid}",'legend_formula'=>'=round(VAL,3)','data_formula'=>'=VAL/1000.0','check_id'=>dpcid})
   end
 end
 #pp graph
@@ -194,8 +199,7 @@ checkids.each do |cid|
   rcid = cid.split('/').last.to_i
   rs = mib_add_rule_set!('duration',{'check'=>rcid})
   mib_add_rule!(rs,{ "criteria"=>"on absence", "severity"=>1, "value"=>180 })
-  mib_add_rule!(rs,{ "criteria"=>"max value", "severity"=>1, "value"=>5000 })
-  mib_add_rule!(rs,{ "criteria"=>"max value", "severity"=>2, "value"=>4000 })
+  mib_add_rule!(rs,{ "criteria"=>"max value", "severity"=>1, "value"=>(@cu.options[:timeout]*1000) })
   #pp rs
   r = @cu.circonus.add_rule_set(rs)
   if not r.nil? then
@@ -209,8 +213,15 @@ checkids.each do |cid|
   if not r.nil? then
     print "Success\n"
   end
+  ##### missing body
+  unless @cu.options[:texttomatch].nil?
+    rs = mib_add_rule_set!('body_match',{'metric_type'=>'text','check'=>rcid})
+    mib_add_rule!(rs,{ "criteria"=>"does not match", "severity"=>1, "value"=>@cu.options[:texttomatch] })
+    #pp rs
+    r = @cu.circonus.add_rule_set(rs)
+    if not r.nil? then
+      print "Success\n"
+    end
+  end
 end
-
-
-
 
