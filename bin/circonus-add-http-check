@@ -6,38 +6,46 @@
 require 'circonusutil'
 
 host = nil
-cu = CirconusUtil.new() { |opts,options|
+@cu = CirconusUtil.new() { |opts,options|
   options[:brokers] = []
   options[:hostname] = nil
   options[:url] = nil
-  options[:tags] = ['application:http']
+  options[:tags] = ['application:http','source:manual']
   opts.banner = "Usage: #{File.basename($0)}\n"
-  opts.on( '--tags TAGLIST',"Apply comma separated list of tags (default: empty list)" ) { |t| options[:tags] += options[:tags] + t.split(/,/) }
+  opts.on( '--tags TAGLIST',"Apply comma separated list of tags (default: empty list)" ) { |t| options[:tags] += t.split(/,/) }
   opts.on( '--brokers BROKER',"Comma separated list of broker names to use" ) { |t| options[:brokers] = t.split(',') }
   opts.on( '--hostname HOSTNAME',"Hostname to add" ) { |t| options[:hostname] = t }
+  opts.on( '--contactgroups CONTACTGROUPS',"Comma separated list of contact groups to send alerts to" ) { |t| options[:contactgroups] = t }
   opts.on( '--url URL',"URL to test" ) { |t| options[:url] = t }
 }
-if cu.options[:brokers].empty?
+if @cu.options[:brokers].empty?
   puts "Missing brokers list"
   exit -1
 end
-if cu.options[:hostname].empty?
+if @cu.options[:hostname].empty?
   puts "Missing hostname"
   exit -1
 end
-if cu.options[:url].empty?
+if @cu.options[:url].empty?
   puts "Missing url"
   exit -1
 end
+if @cu.options[:contactgroups].empty?
+  puts "Missing contact group(s)"
+  exit -1
+end
+@cu.options[:tags].sort!.uniq!
+@cu.options[:contactgroups] = @cu.options[:contactgroups].split(',').sort.uniq
+@cu.options[:brokers].sort!.uniq!
 
 def do_update_check_bundle(cu,data)
-  search_check_bundle = cu.circonus.list_check_bundle({'display_name' => data['display_name']})
+  search_check_bundle = @cu.circonus.list_check_bundle({'display_name' => data['display_name']})
   existing = false
   if search_check_bundle.any? # already exists...
     existing = true
-    r = cu.circonus.update_check_bundle(search_check_bundle.first['_cid'],data)
+    r = @cu.circonus.update_check_bundle(search_check_bundle.first['_cid'],data)
   else
-    r = cu.circonus.add_check_bundle(data)
+    r = @cu.circonus.add_check_bundle(data)
   end
   if not r.nil? then
     pp r
@@ -45,11 +53,10 @@ def do_update_check_bundle(cu,data)
   end
 end
 
-brokerids = []
-cu.options[:brokers].each do |broker|
-  circonus_brokers = cu.circonus.list_broker({'_name'=>broker})
-  id = circonus_brokers.map { |m| m['_cid'] }.first
-  brokerids << id
+brokers = {}
+@cu.options[:brokers].each do |broker|
+  circonus_brokers = @cu.circonus.list_broker({'_name'=>broker})
+  brokers[broker] = circonus_brokers.map { |m| m['_cid'] }.first
 end
 
 bundle_stub = {
@@ -81,21 +88,129 @@ bundle_stub = {
 }
 
 bundle = bundle_stub.clone
-bundle['brokers'] = brokerids
-bundle['target'] = cu.options[:hostname]
-bundle['tags'] = cu.options[:tags]
-bundle['display_name'] = "#{cu.options[:hostname]} http"
-bundle['config']['url'] = cu.options[:url]
-bundle['config']['header_Host'] = cu.options[:hostname]
-
-search_bundles = cu.circonus.search_check_bundle(bundle['display_name'],'display_name')
+bundle['brokers'] = brokers.values.sort
+bundle['target'] = @cu.options[:hostname]
+bundle['tags'] = @cu.options[:tags]
+bundle['display_name'] = "#{@cu.options[:hostname]} http"
+bundle['config']['url'] = @cu.options[:url]
+bundle['config']['header_Host'] = @cu.options[:hostname]
+search_bundles = @cu.circonus.search_check_bundle(bundle['display_name'],'display_name')
 if search_bundles.any? # already exists...
-  r = cu.circonus.update_check_bundle(search_bundles.first['_cid'],bundle)
+  r = @cu.circonus.update_check_bundle(search_bundles.first['_cid'],bundle)
 else
-  r = cu.circonus.add_check_bundle(bundle)
+  r = @cu.circonus.add_check_bundle(bundle)
 end
 if not r.nil? then
   print "Success\n"
   #pp r
 end
+checkids = r["_checks"]
+
+def mib_add_datapoint!(graph,metric_name,datapoint={})
+  init_datapoint = {
+    'color'=>nil,
+    "axis"=>'l',
+    "stack"=>nil,
+    "hidden"=>false,
+    "derive"=>"gauge",
+    "metric_name"=>metric_name,
+    "metric_type"=>"numeric"
+  }
+  new_datapoint = init_datapoint.merge(datapoint)
+  graph['datapoints'] << new_datapoint
+  new_datapoint
+end
+
+# Add a graph to the monitoring bundle
+def mib_add_graph!(title,options={})
+  init_graph = {
+    'title'=>title,
+    'tags'=>[],
+    'style'=>'line',
+    'composites'=>[],
+    'datapoints'=>[],
+    'guides'=>[]
+  }
+  new_graph = init_graph.merge(options)
+  new_graph
+end
+
+puts "Adding graphs"
+graph = mib_add_graph!("#{@cu.options[:hostname]} http latency",{'style'=>'line','tags'=>@cu.options[:tags],'min_left_y'=>0})
+
+checkids.each do |cid|
+  dpcid = cid.split('/').last.to_i
+  %w{ tt_connect tt_firstbyte duration }.each do |metric|
+    mib_add_datapoint!(graph,metric,{'name'=>"metric cid:#{dpcid}",'legend_formula'=>'=round(VAL,3)','data_formula'=>'=VAL/1000.0','check_id'=>dpcid})
+  end
+end
+#pp graph
+r = @cu.circonus.add_graph(graph)
+if not r.nil? then
+  print "Success\n"
+else
+  puts "add_graph results: #{r.inspect}"
+end
+
+def mib_add_rule_set!(metric_name,rule_set={})
+  contactgroupids = []
+  @cu.options[:contactgroups].each do |cgname|
+    r = @cu.circonus.list_contact_group({'name'=>cgname})
+    contactgroupids += r.map { |m| m['_cid'] }
+  end
+  init_rule_set = {
+    'metric_name'       => metric_name,
+    'metric_type'       => 'numeric',
+    'contact_groups'    => {
+      '1'=>contactgroupids,
+      '2'=>contactgroupids,
+      '3'=>contactgroupids,
+      '4'=>contactgroupids,
+      '5'=>contactgroupids
+    },
+    'rules'=>[],
+    'derive'=>nil # can be either counter or nil (nil means you want a gauge)
+  }
+  new_rule_set = init_rule_set.merge(rule_set)
+  new_rule_set
+end
+
+# Add a rule to the given rule_set
+def mib_add_rule!(rule_set,rule={})
+  init_rule = {
+    'criteria'=>'max value',
+    'severity'=>5,
+    'value'=>3000,
+    'wait'=>300
+  }
+  new_rule = init_rule.merge(rule)
+  rule_set['rules'] << new_rule
+  new_rule
+end
+
+puts "Adding rule sets"
+######## http latency alert #########
+checkids.each do |cid|
+  rcid = cid.split('/').last.to_i
+  rs = mib_add_rule_set!('duration',{'check'=>rcid})
+  mib_add_rule!(rs,{ "criteria"=>"on absence", "severity"=>1, "value"=>180 })
+  mib_add_rule!(rs,{ "criteria"=>"max value", "severity"=>1, "value"=>5000 })
+  mib_add_rule!(rs,{ "criteria"=>"max value", "severity"=>2, "value"=>4000 })
+  #pp rs
+  r = @cu.circonus.add_rule_set(rs)
+  if not r.nil? then
+    print "Success\n"
+  end
+  ######## http status code alert #########
+  rs = mib_add_rule_set!('code',{'metric_type'=>'text','check'=>rcid})
+  mib_add_rule!(rs,{ "criteria"=>"does not contain", "severity"=>2, "value"=>'^[23]\\d\\d$' })
+  #pp rs
+  r = @cu.circonus.add_rule_set(rs)
+  if not r.nil? then
+    print "Success\n"
+  end
+end
+
+
+
 

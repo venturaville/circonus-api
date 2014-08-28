@@ -1,0 +1,7 @@
+#!/usr/bin/env ruby
+require 'circonusutil'
+cu = CirconusUtil.new
+cu.circonus.list_contact_group.each do |b|
+  printf("%-40s\n",b['name'])
+end
+
