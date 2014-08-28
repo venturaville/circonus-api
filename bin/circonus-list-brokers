@@ -1,0 +1,6 @@
+#!/usr/bin/env ruby
+require 'circonusutil'
+cu = CirconusUtil.new
+cu.circonus.list_broker.each do |b|
+  printf("%-40s %s\n",b['_name'],b['_details'].first['ipaddress'])
+end
