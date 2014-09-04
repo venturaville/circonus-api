@@ -143,7 +143,8 @@ def mib_add_graph!(title,options={})
 end
 
 puts "Adding graphs"
-graph = mib_add_graph!("#{@cu.options[:hostname]} http latency",{'style'=>'line','tags'=>@cu.options[:tags],'min_left_y'=>0})
+title = ([@cu.options[:hostname],'http'] + @cu.options[:subcomponents]).join(' ')
+graph = mib_add_graph!(title,{'style'=>'line','tags'=>@cu.options[:tags],'min_left_y'=>0})
 
 checkids.each do |cid|
   dpcid = cid.split('/').last.to_i
