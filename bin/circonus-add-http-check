@@ -210,7 +210,7 @@ checkids.each do |cid|
   end
   ######## http status code alert #########
   rs = mib_add_rule_set!('code',{'metric_type'=>'text','check'=>rcid})
-  mib_add_rule!(rs,{ "criteria"=>"does not contain", "severity"=>2, "value"=>'^[23]\\d\\d$' })
+  mib_add_rule!(rs,{ "criteria"=>"does not contain", "severity"=>1, "value"=>'^[23]\\d\\d$' })
   #pp rs
   r = @cu.circonus.add_rule_set(rs)
   if not r.nil? then
