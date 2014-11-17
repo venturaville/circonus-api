@@ -44,7 +44,8 @@ class Circonus
     @headers = {
       "X-Circonus-Auth-Token" => @apitoken,
       "X-Circonus-App-Name" => @appname,
-      "Accept" => 'application/json'
+      "Accept" => 'application/json',
+      "Content-Type" => "application/json"
     }
     @url_prefix = "https://api.circonus.com/v2/"
     @options = DEFAULT_OPTIONS.merge(options)
