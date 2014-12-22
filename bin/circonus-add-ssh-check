@@ -1,0 +1,148 @@
+#!/usr/bin/env ruby
+#
+# Add an ssh check
+#
+
+require 'circonusutil'
+
+host = nil
+@cu = CirconusUtil.new() { |opts,options|
+  options[:brokers] = []
+  options[:hostname] = nil
+  options[:timeout] = 10 # seconds
+  options[:tags] = ['application:ssh','source:manual']
+  opts.banner = "Usage: #{File.basename($0)}\n"
+  opts.on( '--tags TAGLIST',"Apply comma separated list of tags (default: empty list)" ) { |t| options[:tags] += t.split(/,/) }
+  opts.on( '--brokers BROKER',"Comma separated list of broker names to use" ) { |t| options[:brokers] = t.split(',') }
+  opts.on( '--hostname HOSTNAME',"Hostname to add" ) { |t| options[:hostname] = t }
+  opts.on( '--timeout TIMEOUT',"Host timeout" ) { |t| options[:timeout] = t.to_i }
+  opts.on( '--contactgroups CONTACTGROUPS',"Comma separated list of contact groups to send alerts to" ) { |t| options[:contactgroups] = t }
+}
+if @cu.options[:brokers].empty?
+  puts "Missing brokers list"
+  exit -1
+end
+if @cu.options[:hostname].empty?
+  puts "Missing hostname"
+  exit -1
+end
+if @cu.options[:contactgroups].empty?
+  puts "Missing contact group(s)"
+  exit -1
+end
+@cu.options[:tags].sort!.uniq!
+@cu.options[:contactgroups] = @cu.options[:contactgroups].split(',').sort.uniq
+@cu.options[:brokers].sort!.uniq!
+
+def do_update_check_bundle(cu,data)
+  search_check_bundle = @cu.circonus.list_check_bundle({'display_name' => data['display_name']})
+  existing = false
+  if search_check_bundle.any? # already exists...
+    existing = true
+    r = @cu.circonus.update_check_bundle(search_check_bundle.first['_cid'],data)
+  else
+    r = @cu.circonus.add_check_bundle(data)
+  end
+  if not r.nil? then
+    pp r
+    print "Success (#{existing ? 'updating' : 'adding'} #{data['display_name']})\n"
+  end
+end
+
+brokers = {}
+@cu.options[:brokers].each do |broker|
+  circonus_brokers = @cu.circonus.list_broker({'_name'=>broker})
+  brokers[broker] = circonus_brokers.map { |m| m['_cid'] }.first
+end
+
+bundle_stub = {
+  "brokers"=>[ ],
+  "display_name"=>nil,
+  "period"=>120,
+  "target"=>nil,
+  "timeout"=>15,
+  "type"=>"ssh2",
+  'notes' => 'This check is to see if SSH is responding on a node',
+  "tags"=>[],
+  "metrics"=> [
+    {"name"=>"duration", "type"=>"numeric"}
+  ],
+  "config" => {
+    "method_crypt_cs"=>"aes128-ctr",
+    "method_comp_sc"=>"none",
+    "method_comp_cs"=>"none",
+    "method_hostkey"=>"ssh-dss",
+    'port' => 22,
+    "method_crypt_sc"=>"aes128-ctr"
+  }
+}
+
+bundle = bundle_stub.clone
+bundle['brokers'] = brokers.values.sort
+bundle['target'] = @cu.options[:hostname]
+bundle['tags'] = @cu.options[:tags]
+bundle['display_name'] = ([@cu.options[:hostname],'ssh'] + ['ssh']).join(' ')
+search_bundles = @cu.circonus.search_check_bundle(bundle['display_name'],'display_name')
+if search_bundles.any? # already exists...
+  r = @cu.circonus.update_check_bundle(search_bundles.first['_cid'],bundle)
+else
+  r = @cu.circonus.add_check_bundle(bundle)
+end
+if not r.nil? then
+  print "Success\n"
+  #pp r
+end
+checkids = r["_checks"]
+
+def mib_add_rule_set!(metric_name,rule_set={})
+  contactgroupids = []
+  @cu.options[:contactgroups].each do |cgname|
+    r = @cu.circonus.list_contact_group({'name'=>cgname})
+    contactgroupids += r.map { |m| m['_cid'] }
+  end
+  init_rule_set = {
+    'metric_name'       => metric_name,
+    'metric_type'       => 'numeric',
+    'contact_groups'    => {
+      '1'=>contactgroupids,
+      '2'=>contactgroupids,
+      '3'=>contactgroupids,
+      '4'=>contactgroupids,
+      '5'=>contactgroupids
+    },
+    'rules'=>[],
+    'derive'=>nil # can be either counter or nil (nil means you want a gauge)
+  }
+  new_rule_set = init_rule_set.merge(rule_set)
+  new_rule_set
+end
+
+# Add a rule to the given rule_set
+def mib_add_rule!(rule_set,rule={})
+  init_rule = {
+    'criteria'=>'max value',
+    'severity'=>5,
+    'value'=>3000,
+    'wait'=>5
+  }
+  new_rule = init_rule.merge(rule)
+  rule_set['rules'] << new_rule
+  new_rule
+end
+
+puts "Adding rule sets"
+######## ssh absence alert #########
+checkids.each do |cid|
+  rcid = cid.split('/').last.to_i
+
+  rs = mib_add_rule_set!('duration',{'link'=>'http://docs.turner.com/display/SRE/Circonus+TCP+Check+ERP','notes'=>'This alert is a test to see if a node is actually online using the responsiveness of the ssh port.  If this is alerting it means the node in the alert is likely offline'})
+  mib_add_rule!(rs,{"criteria"=>"on absence", "severity"=>1, "value"=>300})
+
+  r = @cu.circonus.add_rule_set(rs)
+  if not r.nil? then
+    print "Success\n"
+  else
+    print "Failure\n"
+  end
+end
+
