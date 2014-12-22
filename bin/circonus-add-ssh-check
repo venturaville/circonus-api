@@ -134,8 +134,7 @@ puts "Adding rule sets"
 ######## ssh absence alert #########
 checkids.each do |cid|
   rcid = cid.split('/').last.to_i
-
-  rs = mib_add_rule_set!('duration',{'link'=>'http://docs.turner.com/display/SRE/Circonus+TCP+Check+ERP','notes'=>'This alert is a test to see if a node is actually online using the responsiveness of the ssh port.  If this is alerting it means the node in the alert is likely offline'})
+  rs = mib_add_rule_set!('duration',{'link'=>'http://docs.turner.com/display/SRE/Circonus+TCP+Check+ERP','notes'=>'This alert is a test to see if a node is actually online using the responsiveness of the ssh port.  If this is alerting it means the node in the alert is likely offline','check'=>rcid})
   mib_add_rule!(rs,{"criteria"=>"on absence", "severity"=>1, "value"=>300})
 
   r = @cu.circonus.add_rule_set(rs)
