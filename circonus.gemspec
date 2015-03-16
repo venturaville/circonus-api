@@ -1,6 +1,6 @@
 Gem::Specification.new do |s|
   s.name = "circonus"
-  s.version = "3.6.9"
+  s.version = "3.6.10"
   s.license = 'MIT'
   s.email = "david-vv@nicklay.com"
   s.homepage = "https://github.com/venturaville/circonus-api"
