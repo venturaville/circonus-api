@@ -152,7 +152,7 @@ class Circonus
   def get_data(cid,metric,params = {})
     params['start'] = (Time.now - 3600).to_i unless params.has_key? 'start'
     params['end'] = Time.now.to_i unless params.has_key? 'end'
-    params['period'] = 300 unless (params.has_key? 'period') or params['period'].nil?
+    params['period'] = 300 unless params.has_key? 'period'
     params['type'] = 'numeric' unless params.has_key? 'type'
     url = @url_prefix + 'data' + '/' + URI.escape(cid.to_s.split('/').last) + '_' + URI::escape(metric)
     headers = @headers.merge({:params => params})
