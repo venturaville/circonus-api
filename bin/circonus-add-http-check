@@ -15,7 +15,7 @@ host = nil
   options[:subcomponents] = []
   options[:tags] = ['application:http','source:manual']
   opts.banner = "Usage: #{File.basename($0)}\n"
-  opts.on( '--tags TAGLIST',"Apply comma separated list of tags (default: empty list)" ) { |t| options[:tags] += t.split(/,/) }
+  opts.on( '--tags TAGLIST',"Apply comma separated list of tags (default: application:http,source:manual)" ) { |t| options[:tags] += t.split(/,/) }
   opts.on( '--brokers BROKER',"Comma separated list of broker names to use" ) { |t| options[:brokers] = t.split(',') }
   opts.on( '--hostname HOSTNAME',"Hostname to add" ) { |t| options[:hostname] = t }
   opts.on( '--uniqueid STRING',"For checks with the same hostname, uniquely identify the check" ) { |t| options[:subcomponents] += [t] }
@@ -149,7 +149,7 @@ graph = mib_add_graph!(title,{'style'=>'line','tags'=>@cu.options[:tags],'min_le
 checkids.each do |cid|
   dpcid = cid.split('/').last.to_i
   %w{ tt_connect tt_firstbyte duration }.each do |metric|
-    mib_add_datapoint!(graph,metric,{'name'=>"#{metric} cid:#{dpcid}",'legend_formula'=>'=round(VAL,3)','data_formula'=>'=VAL/1000.0','check_id'=>dpcid})
+    mib_add_datapoint!(graph,metric,{'name'=>"#{metric} (ms) broker:#{dpcid}",'legend_formula'=>'=round(VAL,1)','check_id'=>dpcid})
   end
 end
 #pp graph
