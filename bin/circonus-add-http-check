@@ -120,6 +120,7 @@ def mib_add_datapoint!(graph,metric_name,datapoint={})
     "stack"=>nil,
     "hidden"=>false,
     "derive"=>"gauge",
+    "data_formula"=>'=VAL',
     "metric_name"=>metric_name,
     "metric_type"=>"numeric"
   }
